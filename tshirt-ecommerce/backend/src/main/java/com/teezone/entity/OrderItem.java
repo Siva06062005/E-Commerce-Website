@@ -38,6 +38,30 @@ public class OrderItem {
     @Column(name = "image_url")
     private String image;
 
+    @Column(name = "supplier_id")
+    private Long supplierId;
+
+    @Column(name = "supplier_name")
+    private String supplierName;
+
+    @Column(name = "hsn_code", length = 20)
+    private String hsnCode = "61091000";
+
+    @Column(name = "gst_rate", precision = 4, scale = 2)
+    private BigDecimal gstRate = new BigDecimal("12.00");
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal cgst = BigDecimal.ZERO;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal sgst = BigDecimal.ZERO;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal igst = BigDecimal.ZERO;
+
+    @Column(name = "fulfillment_status", nullable = false)
+    private String fulfillmentStatus = "NEW"; // NEW, CONFIRMED, PACKED, READY_TO_SHIP, SHIPPED, DELIVERED, RETURN_REQUESTED, RETURNED, CANCELLED
+
     public OrderItem() {}
 
     public OrderItem(Order order, Long productId, String productName, String size, String color, BigDecimal price, Integer quantity, String image) {
@@ -77,4 +101,28 @@ public class OrderItem {
 
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
+
+    public Long getSupplierId() { return supplierId; }
+    public void setSupplierId(Long supplierId) { this.supplierId = supplierId; }
+
+    public String getSupplierName() { return supplierName; }
+    public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
+
+    public String getHsnCode() { return hsnCode; }
+    public void setHsnCode(String hsnCode) { this.hsnCode = hsnCode; }
+
+    public BigDecimal getGstRate() { return gstRate; }
+    public void setGstRate(BigDecimal gstRate) { this.gstRate = gstRate; }
+
+    public BigDecimal getCgst() { return cgst; }
+    public void setCgst(BigDecimal cgst) { this.cgst = cgst; }
+
+    public BigDecimal getSgst() { return sgst; }
+    public void setSgst(BigDecimal sgst) { this.sgst = sgst; }
+
+    public BigDecimal getIgst() { return igst; }
+    public void setIgst(BigDecimal igst) { this.igst = igst; }
+
+    public String getFulfillmentStatus() { return fulfillmentStatus; }
+    public void setFulfillmentStatus(String fulfillmentStatus) { this.fulfillmentStatus = fulfillmentStatus; }
 }

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { itemCount } = useCart();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isSupplier, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -62,9 +62,16 @@ const Navbar = () => {
                   New Arrivals
                 </NavLink>
               </li>
+              {isSupplier && (
+                <li>
+                  <NavLink to="/supplier" className="badge badge-success" style={{ textDecoration: 'none', marginLeft: '0.5rem', padding: '0.35rem 0.75rem' }}>
+                    <Layers size={13} /> Supplier Portal
+                  </NavLink>
+                </li>
+              )}
               {isAdmin && (
                 <li>
-                  <NavLink to="/admin" className="badge badge-sale" style={{ textDecoration: 'none', marginLeft: '0.5rem' }}>
+                  <NavLink to="/admin" className="badge badge-sale" style={{ textDecoration: 'none', marginLeft: '0.5rem', padding: '0.35rem 0.75rem' }}>
                     <ShieldAlert size={13} /> Admin Portal
                   </NavLink>
                 </li>
@@ -92,7 +99,7 @@ const Navbar = () => {
                     position: 'absolute',
                     top: '52px',
                     right: 0,
-                    width: '220px',
+                    width: '230px',
                     borderRadius: '12px',
                     padding: '0.75rem',
                     boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6)',
@@ -106,21 +113,40 @@ const Navbar = () => {
                         <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{user.name}</p>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user.email}</p>
                         {isAdmin && <span className="badge badge-primary" style={{ marginTop: '4px' }}>ADMIN</span>}
+                        {isSupplier && <span className="badge badge-success" style={{ marginTop: '4px' }}>SUPPLIER</span>}
                       </div>
                       <Link
                         to="/orders"
                         onClick={() => setUserMenuOpen(false)}
                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.6rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}
                       >
-                        <Package size={16} /> My Orders
+                        <Package size={16} /> My Orders & Tracking
                       </Link>
+                      {isSupplier && (
+                        <Link
+                          to="/supplier"
+                          onClick={() => setUserMenuOpen(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.6rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--accent-emerald)' }}
+                        >
+                          <Layers size={16} /> Supplier Dashboard
+                        </Link>
+                      )}
                       {isAdmin && (
                         <Link
                           to="/admin"
                           onClick={() => setUserMenuOpen(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.6rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--accent-primary)' }}
                         >
-                          <Layers size={16} /> Admin Dashboard
+                          <ShieldAlert size={16} /> Admin Portal
+                        </Link>
+                      )}
+                      {!isSupplier && !isAdmin && (
+                        <Link
+                          to="/supplier"
+                          onClick={() => setUserMenuOpen(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.6rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--accent-cyan)' }}
+                        >
+                          <Layers size={16} /> Supplier Mode
                         </Link>
                       )}
                       <button

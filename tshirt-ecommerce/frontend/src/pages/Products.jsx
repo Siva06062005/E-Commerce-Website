@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, RotateCcw, X, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCcw, X, Filter, Store, ShieldCheck } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { productService } from '../services/productService';
+import { formatINR } from '../utils/indianCommerceUtils';
+import VerifiedBadge from '../components/VerifiedBadge';
 
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const COLORS = ['All', 'Black', 'Red', 'Navy', 'Heather Grey', 'White'];
 const CATEGORIES_LIST = ['All', 'Developer', 'Streetwear', 'Minimalist'];
+const VENDORS_LIST = ['All', 'Bharat Cotton Mills', 'Tirupur Apparel Works', 'Surat Silk & Knits'];
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,9 +19,10 @@ const Products = () => {
   // Filter States
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
+  const [selectedVendor, setSelectedVendor] = useState('All');
   const [selectedSize, setSelectedSize] = useState('All');
   const [selectedColor, setSelectedColor] = useState('All');
-  const [maxPrice, setMaxPrice] = useState(60);
+  const [maxPrice, setMaxPrice] = useState(3000);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'popular');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
@@ -56,12 +60,19 @@ const Products = () => {
           const matchName = item.name.toLowerCase().includes(q);
           const matchDesc = item.description?.toLowerCase().includes(q);
           const matchCategory = item.category?.toLowerCase().includes(q);
-          if (!matchName && !matchDesc && !matchCategory) return false;
+          const matchVendor = (item.vendorName || item.supplierName || 'Bharat Cotton Mills').toLowerCase().includes(q);
+          if (!matchName && !matchDesc && !matchCategory && !matchVendor) return false;
         }
 
         // Category filter
         if (selectedCategory !== 'All') {
           if (item.category?.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+        }
+
+        // Vendor filter
+        if (selectedVendor !== 'All') {
+          const itemVendor = item.vendorName || item.supplierName || 'Bharat Cotton Mills';
+          if (!itemVendor.toLowerCase().includes(selectedVendor.toLowerCase())) return false;
         }
 
         // Size filter
@@ -91,19 +102,20 @@ const Products = () => {
         // Default popular
         return (b.rating || 0) - (a.rating || 0);
       });
-  }, [products, searchQuery, selectedCategory, selectedSize, selectedColor, maxPrice, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedVendor, selectedSize, selectedColor, maxPrice, sortBy]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('All');
+    setSelectedVendor('All');
     setSelectedSize('All');
     setSelectedColor('All');
-    setMaxPrice(60);
+    setMaxPrice(3000);
     setSortBy('popular');
     setSearchParams({});
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory !== 'All' || selectedSize !== 'All' || selectedColor !== 'All' || maxPrice < 60;
+  const hasActiveFilters = searchQuery || selectedCategory !== 'All' || selectedVendor !== 'All' || selectedSize !== 'All' || selectedColor !== 'All' || maxPrice < 3000;
 
   return (
     <div className="container animate-fade-in" style={{ padding: '2.5rem 1.5rem 5rem' }}>
@@ -232,6 +244,39 @@ const Products = () => {
             </div>
           </div>
 
+          {/* Verified Indian Brands / Vendors Filter */}
+          <div>
+            <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Store size={14} /> Brand / Mill
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {VENDORS_LIST.map((vnd) => (
+                <button
+                  key={vnd}
+                  onClick={() => setSelectedVendor(vnd)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '0.45rem 0.65rem',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: selectedVendor === vnd ? 700 : 500,
+                    background: selectedVendor === vnd ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                    color: selectedVendor === vnd ? '#38bdf8' : 'var(--text-secondary)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>{vnd === 'All' ? 'All Verified Mills' : vnd}</span>
+                  {vnd !== 'All' && <VerifiedBadge status="APPROVED" size="sm" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Size Filter */}
           <div>
             <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
@@ -298,28 +343,28 @@ const Products = () => {
             </div>
           </div>
 
-          {/* Price Range Slider */}
+          {/* Price Range Slider in INR */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
                 Max Price
               </h4>
               <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                ${maxPrice}
+                {formatINR(maxPrice)}
               </span>
             </div>
             <input
               type="range"
-              min="20"
-              max="60"
-              step="2"
+              min="499"
+              max="3000"
+              step="100"
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              <span>$20</span>
-              <span>$60</span>
+              <span>{formatINR(499)}</span>
+              <span>{formatINR(3000)}</span>
             </div>
           </div>
         </aside>
@@ -334,9 +379,10 @@ const Products = () => {
             {hasActiveFilters && (
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {selectedCategory !== 'All' && <span className="badge badge-primary">{selectedCategory}</span>}
+                {selectedVendor !== 'All' && <span className="badge badge-success">Mill: {selectedVendor}</span>}
                 {selectedSize !== 'All' && <span className="badge badge-primary">Size {selectedSize}</span>}
                 {selectedColor !== 'All' && <span className="badge badge-primary">{selectedColor}</span>}
-                {maxPrice < 60 && <span className="badge badge-primary">Under ${maxPrice}</span>}
+                {maxPrice < 3000 && <span className="badge badge-primary">Under {formatINR(maxPrice)}</span>}
               </div>
             )}
           </div>

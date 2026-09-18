@@ -12,7 +12,12 @@ import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import CustomerOrders from './pages/CustomerOrders';
 import AdminDashboard from './pages/AdminDashboard';
-import { ProtectedAdminRoute, ProtectedCustomerRoute } from './components/ProtectedRoute';
+import SupplierDashboard from './pages/supplier/SupplierDashboard';
+import SupplierProductWizard from './pages/supplier/SupplierProductWizard';
+import SupplierInventory from './pages/supplier/SupplierInventory';
+import SupplierOrders from './pages/supplier/SupplierOrders';
+import SupplierSettlements from './pages/supplier/SupplierSettlements';
+import { ProtectedAdminRoute, ProtectedCustomerRoute, ProtectedSupplierRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import './App.css';
@@ -38,6 +43,48 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
                 <Route path="/orders" element={<CustomerOrders />} />
+
+                {/* Supplier / Vendor Portal (Protected) */}
+                <Route
+                  path="/supplier"
+                  element={
+                    <ProtectedSupplierRoute>
+                      <SupplierDashboard />
+                    </ProtectedSupplierRoute>
+                  }
+                />
+                <Route
+                  path="/supplier/products/new"
+                  element={
+                    <ProtectedSupplierRoute>
+                      <SupplierProductWizard />
+                    </ProtectedSupplierRoute>
+                  }
+                />
+                <Route
+                  path="/supplier/inventory"
+                  element={
+                    <ProtectedSupplierRoute>
+                      <SupplierInventory />
+                    </ProtectedSupplierRoute>
+                  }
+                />
+                <Route
+                  path="/supplier/orders"
+                  element={
+                    <ProtectedSupplierRoute>
+                      <SupplierOrders />
+                    </ProtectedSupplierRoute>
+                  }
+                />
+                <Route
+                  path="/supplier/settlements"
+                  element={
+                    <ProtectedSupplierRoute>
+                      <SupplierSettlements />
+                    </ProtectedSupplierRoute>
+                  }
+                />
 
                 {/* Admin Portal (Protected) */}
                 <Route

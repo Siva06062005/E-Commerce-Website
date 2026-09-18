@@ -49,6 +49,28 @@ public class Product {
     @Column(name = "review_count")
     private Integer reviewCount = 0;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    @Column(name = "hsn_code", length = 20)
+    private String hsnCode = "61091000"; // Default HSN for cotton T-shirts in India
+
+    @Column(name = "gst_rate", precision = 4, scale = 2)
+    private BigDecimal gstRate = new BigDecimal("12.00"); // Standard Indian GST slab for apparel
+
+    @Column(name = "approval_status", nullable = false)
+    private String approvalStatus = "APPROVED"; // PENDING, APPROVED, REJECTED
+
+    @Column(name = "weight_grams")
+    private Integer weightGrams = 240;
+
+    @Column(name = "dimensions_cm")
+    private String dimensionsCm = "30x25x2";
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductImage> images = new ArrayList<>();
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ProductSize> sizes = new ArrayList<>();
 
@@ -108,6 +130,27 @@ public class Product {
 
     public List<ProductSize> getSizes() { return sizes; }
     public void setSizes(List<ProductSize> sizes) { this.sizes = sizes; }
+
+    public Supplier getSupplier() { return supplier; }
+    public void setSupplier(Supplier supplier) { this.supplier = supplier; }
+
+    public String getHsnCode() { return hsnCode; }
+    public void setHsnCode(String hsnCode) { this.hsnCode = hsnCode; }
+
+    public BigDecimal getGstRate() { return gstRate; }
+    public void setGstRate(BigDecimal gstRate) { this.gstRate = gstRate; }
+
+    public String getApprovalStatus() { return approvalStatus; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+
+    public Integer getWeightGrams() { return weightGrams; }
+    public void setWeightGrams(Integer weightGrams) { this.weightGrams = weightGrams; }
+
+    public String getDimensionsCm() { return dimensionsCm; }
+    public void setDimensionsCm(String dimensionsCm) { this.dimensionsCm = dimensionsCm; }
+
+    public List<ProductImage> getImages() { return images; }
+    public void setImages(List<ProductImage> images) { this.images = images; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

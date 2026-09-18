@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { formatINR } from '../utils/indianCommerceUtils';
+import VerifiedBadge from './VerifiedBadge';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
@@ -11,6 +13,7 @@ const ProductCard = ({ product }) => {
   const price = typeof product.price === 'number' ? product.price : parseFloat(product.price || 0);
   const originalPrice = product.originalPrice || (price * 1.25);
   const totalStock = product.totalStock ?? (product.sizes?.reduce((sum, s) => sum + s.stock, 0) || product.stock || 50);
+  const vendorName = product.vendorName || product.supplierName || 'Bharat Cotton Mills';
 
   const handleQuickAdd = (e) => {
     e.preventDefault();
@@ -121,6 +124,11 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>by {vendorName}</span>
+          <VerifiedBadge status={product.supplierStatus || 'APPROVED'} size="sm" />
+        </div>
+
         <Link to={`/products/${product.id}`}>
           <h3 style={{
             fontSize: '1.05rem',
@@ -177,16 +185,14 @@ const ProductCard = ({ product }) => {
 
         {/* Price & Quick Add Button */}
         <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-          <div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Rs.{price.toFixed(2)}
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {formatINR(price)}
             </span>
             {originalPrice > price && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '6px' }}>
-                ${Number(originalPrice).toFixed(2)}
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '6px' }}>
+                {formatINR(originalPrice)}
               </span>
             )}
-          </div>
 
           <button
             onClick={handleQuickAdd}

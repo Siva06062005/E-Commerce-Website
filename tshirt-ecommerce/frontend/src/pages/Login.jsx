@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, LogIn, Sparkles, Shield, User, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, Sparkles, Shield, User, AlertCircle, Store, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -24,8 +24,12 @@ const Login = () => {
 
     const result = await login(email, password);
     if (result.success) {
-      if (result.user.role === 'ROLE_ADMIN' || result.user.role === 'ADMIN') {
+      const userRole = result.user?.role;
+      // Automatic role-based navigation
+      if (userRole === 'ROLE_ADMIN' || userRole === 'ADMIN') {
         navigate('/admin');
+      } else if (userRole === 'ROLE_SUPPLIER' || userRole === 'SUPPLIER') {
+        navigate('/supplier');
       } else {
         const destination = location.state?.from?.pathname || '/products';
         navigate(destination);
@@ -38,6 +42,9 @@ const Login = () => {
     if (type === 'admin') {
       setEmail('admin@teezone.com');
       setPassword('AdminSecret123!');
+    } else if (type === 'vendor') {
+      setEmail('vendor@teezone.in');
+      setPassword('VendorPass123!');
     } else {
       setEmail('demo@example.com');
       setPassword('Password123!');
@@ -47,7 +54,7 @@ const Login = () => {
 
   return (
     <div className="container animate-fade-in" style={{ padding: '4rem 1.5rem 6rem', display: 'flex', justifyContent: 'center' }}>
-      <div className="card" style={{ width: '100%', maxWidth: '460px', padding: '2.5rem' }}>
+      <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem' }}>
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
@@ -65,10 +72,10 @@ const Login = () => {
             <Sparkles size={24} />
           </div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-            Welcome Back
+            Unified Platform Sign In
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Sign in to access your bag, past drops, and express checkout.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            Single secure gateway for Customers, Verified Vendors, and Universal Admins.
           </p>
         </div>
 
@@ -88,7 +95,7 @@ const Login = () => {
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label">Registered Email Address</label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
@@ -96,7 +103,7 @@ const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="developer@teezone.com"
+                placeholder="name@example.com or vendor@teezone.in"
                 className="form-input"
                 style={{ paddingLeft: '2.5rem' }}
               />
@@ -129,33 +136,47 @@ const Login = () => {
           >
             {loading ? 'Authenticating...' : (
               <>
-                <LogIn size={18} /> Sign In
+                <LogIn size={18} /> Sign In & Route
               </>
             )}
           </button>
         </form>
 
         {/* Quick Testing Profiles Helper */}
-        <div style={{ background: 'var(--bg-secondary)', borderRadius: '8px', padding: '1rem', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
-          <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 700 }}>
-            Quick Demo Auto-Fill:
+        <div style={{ background: 'var(--bg-secondary)', borderRadius: '10px', padding: '1.1rem', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.75rem', fontWeight: 700 }}>
+            Instant Role Switcher (Auto-Fills & Demonstrates Routing):
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             <button
               type="button"
               onClick={() => fillCredentials('admin')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem', gap: '4px' }}
+              style={{ fontSize: '0.72rem', padding: '0.5rem 0.4rem', flexDirection: 'column', gap: '3px' }}
+              title="Universal Admin with master access"
             >
-              <Shield size={12} color="var(--accent-secondary)" /> Admin Role
+              <Shield size={14} color="var(--accent-secondary)" />
+              <span style={{ fontWeight: 700 }}>Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fillCredentials('vendor')}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.72rem', padding: '0.5rem 0.4rem', flexDirection: 'column', gap: '3px' }}
+              title="Verified Indian Supplier"
+            >
+              <Store size={14} color="var(--accent-emerald)" />
+              <span style={{ fontWeight: 700 }}>Vendor ✓</span>
             </button>
             <button
               type="button"
               onClick={() => fillCredentials('customer')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem', gap: '4px' }}
+              style={{ fontSize: '0.72rem', padding: '0.5rem 0.4rem', flexDirection: 'column', gap: '3px' }}
+              title="Customer Shopper"
             >
-              <User size={12} color="var(--accent-primary)" /> Customer Role
+              <User size={14} color="var(--accent-primary)" />
+              <span style={{ fontWeight: 700 }}>Customer</span>
             </button>
           </div>
         </div>
@@ -164,7 +185,7 @@ const Login = () => {
         <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
           Don't have an account?{' '}
           <Link to="/register" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
-            Register Now
+            Create Account (Customer or Vendor)
           </Link>
         </p>
       </div>

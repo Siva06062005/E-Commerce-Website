@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, ShieldCheck, Truck, ArrowLeft, Plus, Minus, ShoppingBag, Zap, Check, AlertCircle } from 'lucide-react';
 import { productService } from '../services/productService';
 import { useCart } from '../context/CartContext';
+import { formatINR } from '../utils/indianCommerceUtils';
+import VerifiedBadge from '../components/VerifiedBadge';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -152,6 +154,24 @@ const ProductDetails = () => {
             {product.name}
           </h1>
 
+          {/* Vendor Trust Badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '1rem',
+            background: 'var(--bg-secondary)',
+            padding: '0.4rem 0.85rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-subtle)'
+          }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Sold by:</span>
+            <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+              {product.vendorName || product.supplierName || 'Bharat Cotton Mills'}
+            </strong>
+            <VerifiedBadge status={product.supplierStatus || 'APPROVED'} size="sm" showLabel={true} />
+          </div>
+
           {/* Rating */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem' }}>
             <div className="star-rating">
@@ -166,11 +186,11 @@ const ProductDetails = () => {
           {/* Price */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '1.75rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
             <span style={{ fontSize: '2.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-              ${price.toFixed(2)}
+              {formatINR(price)}
             </span>
             {originalPrice > price && (
               <span style={{ fontSize: '1.15rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                ${Number(originalPrice).toFixed(2)}
+                {formatINR(originalPrice)}
               </span>
             )}
             <span className="badge badge-success" style={{ marginLeft: 'auto' }}>

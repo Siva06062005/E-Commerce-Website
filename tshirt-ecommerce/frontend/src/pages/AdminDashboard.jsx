@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Package, ShoppingBag, DollarSign, AlertTriangle, Plus, Edit2, Trash2, 
-  Search, Check, X, ShieldAlert, Truck, Clock, RefreshCw, Eye
+  Package, ShoppingBag, IndianRupee, AlertTriangle, Plus, Edit2, Trash2, 
+  Search, Check, X, ShieldAlert, Truck, Clock, RefreshCw, Eye,
+  Users, Building, FileText, Settings, Wallet, CheckCircle, Percent, ShieldCheck
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { orderService } from '../services/orderService';
+import { adminService } from '../services/adminService';
+import { formatINR, formatIndianDateTime } from '../utils/indianCommerceUtils';
 import { useAuth } from '../context/AuthContext';
+import VerifiedBadge from '../components/VerifiedBadge';
 
 const INITIAL_FORM = {
   name: '',
@@ -46,6 +50,12 @@ const AdminDashboard = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
 
+  // Multi-Vendor State
+  const [suppliers, setSuppliers] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [settlements, setSettlements] = useState([]);
+  const [settings, setSettings] = useState(adminService.getSystemSettings());
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
@@ -71,6 +81,38 @@ const AdminDashboard = () => {
     } finally {
       setLoadingOrders(false);
     }
+
+    try {
+      const [supps, logs, sets] = await Promise.all([
+        adminService.getSuppliers(),
+        adminService.getAuditLogs(),
+        supplierService.getSettlements()
+      ]);
+      setSuppliers(supps);
+      setAuditLogs(logs);
+      setSettlements(sets);
+      setSettings(adminService.getSystemSettings());
+    } catch (e) {
+      console.error('Failed to load multi-vendor admin resources', e);
+    }
+  };
+
+  const handleApproveSupplier = async (id) => {
+    await adminService.updateSupplierStatus(id, 'APPROVED', 'Verified GSTIN and business registration');
+    showToast('Supplier approved successfully.');
+    loadAllData();
+  };
+
+  const handleSuspendSupplier = async (id) => {
+    await adminService.updateSupplierStatus(id, 'SUSPENDED', 'Policy compliance review');
+    showToast('Supplier account suspended.');
+    loadAllData();
+  };
+
+  const handleSaveSettings = (e) => {
+    e.preventDefault();
+    adminService.updateSystemSettings(settings);
+    showToast('Platform settings and commission rates saved.');
   };
 
   useEffect(() => {
@@ -224,11 +266,11 @@ const AdminDashboard = () => {
       }}>
         <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <DollarSign size={24} />
+            <IndianRupee size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Sales</span>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>${totalRevenue.toFixed(2)}</h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total GMV</span>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{formatINR(totalRevenue)}</h3>
           </div>
         </div>
 
@@ -244,11 +286,11 @@ const AdminDashboard = () => {
 
         <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Package size={24} />
+            <Building size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active T-Shirts</span>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{totalProductsCount}</h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Suppliers</span>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{suppliers.length} Vendors</h3>
           </div>
         </div>
 
@@ -264,31 +306,90 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Tab Controls */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        marginBottom: '2rem',
+        borderBottom: '1px solid var(--border-subtle)',
+        paddingBottom: '0.5rem',
+        overflowX: 'auto'
+      }}>
         <button
           onClick={() => setActiveTab('products')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: '0.75rem 1.25rem',
             fontWeight: 700,
-            fontSize: '1rem',
+            fontSize: '0.95rem',
             borderBottom: activeTab === 'products' ? '3px solid var(--accent-primary)' : 'none',
             color: activeTab === 'products' ? 'var(--text-primary)' : 'var(--text-secondary)'
           }}
         >
-          T-Shirt Catalog ({products.length})
+          Catalog ({products.length})
         </button>
 
         <button
           onClick={() => setActiveTab('orders')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: '0.75rem 1.25rem',
             fontWeight: 700,
-            fontSize: '1rem',
+            fontSize: '0.95rem',
             borderBottom: activeTab === 'orders' ? '3px solid var(--accent-primary)' : 'none',
             color: activeTab === 'orders' ? 'var(--text-primary)' : 'var(--text-secondary)'
           }}
         >
-          Customer Orders ({orders.length})
+          Orders ({orders.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('suppliers')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            borderBottom: activeTab === 'suppliers' ? '3px solid var(--accent-primary)' : 'none',
+            color: activeTab === 'suppliers' ? 'var(--text-primary)' : 'var(--text-secondary)'
+          }}
+        >
+          Suppliers ({suppliers.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settlements')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            borderBottom: activeTab === 'settlements' ? '3px solid var(--accent-primary)' : 'none',
+            color: activeTab === 'settlements' ? 'var(--text-primary)' : 'var(--text-secondary)'
+          }}
+        >
+          Disbursements
+        </button>
+
+        <button
+          onClick={() => setActiveTab('audit-logs')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            borderBottom: activeTab === 'audit-logs' ? '3px solid var(--accent-primary)' : 'none',
+            color: activeTab === 'audit-logs' ? 'var(--text-primary)' : 'var(--text-secondary)'
+          }}
+        >
+          Audit Trail
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            borderBottom: activeTab === 'settings' ? '3px solid var(--accent-primary)' : 'none',
+            color: activeTab === 'settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
+          }}
+        >
+          System Config
         </button>
       </div>
 
@@ -428,7 +529,7 @@ const AdminDashboard = () => {
                       {order.items?.length || 0} items
                     </td>
                     <td style={{ padding: '1rem', fontWeight: 800 }}>
-                      ${(order.totalAmount || 0).toFixed(2)}
+                      {formatINR(order.totalAmount || 0)}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <span className="badge badge-primary">{order.paymentMethod || 'CARD'}</span>
@@ -453,6 +554,319 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* TAB 3: SUPPLIERS & VENDORS */}
+      {activeTab === 'suppliers' && (
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>Registered Indian Suppliers & Verification</h2>
+                <span className="badge badge-primary">Universal Admin Authority</span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
+                Onboarded apparel manufacturers and textile mills. Approving a supplier grants them the official Verified Blue Tick badge.
+              </p>
+            </div>
+
+            {/* Quick Supplier Summary Counters */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ background: 'var(--bg-secondary)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>TOTAL VENDORS</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{suppliers.length}</div>
+              </div>
+              <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#38bdf8' }}>VERIFIED (TICK)</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#38bdf8' }}>
+                  {suppliers.filter(s => s.status === 'APPROVED').length}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.3)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)' }}>PENDING REVIEW</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-amber)' }}>
+                  {suppliers.filter(s => s.status === 'PENDING').length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>STORE / VENDOR NAME</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>GSTIN & PAN</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>LOCATION</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>PRODUCTS</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>COMMISSION</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>VERIFICATION STATUS</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>ADMIN ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suppliers.map(s => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{s.storeName}</strong>
+                        <VerifiedBadge status={s.status} size="sm" showLabel={false} />
+                      </div>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{s.ownerName || 'Contact'} • {s.phone || 'N/A'}</span>
+                    </td>
+                    <td style={{ padding: '1rem', fontFamily: 'monospace' }}>
+                      <div style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>{s.gstin}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PAN: {s.pan}</div>
+                    </td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                      {s.city}, {s.state} {s.pincode ? `(${s.pincode})` : ''}
+                    </td>
+                    <td style={{ padding: '1rem', fontWeight: 700 }}>
+                      {s.totalProducts || 0} styles
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <span className="badge badge-primary">{s.commissionRate || 10}%</span>
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      {s.status === 'APPROVED' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="badge badge-success">APPROVED</span>
+                          <span style={{ fontSize: '0.75rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <VerifiedBadge status="APPROVED" size="sm" /> Tick Active
+                          </span>
+                        </div>
+                      ) : s.status === 'PENDING' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="badge badge-warning">PENDING REVIEW</span>
+                        </div>
+                      ) : (
+                        <span className="badge badge-sale">SUSPENDED</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      {s.status === 'PENDING' ? (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => handleApproveSupplier(s.id)}
+                          style={{
+                            background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                            border: 'none',
+                            gap: '4px',
+                            fontWeight: 700
+                          }}
+                          title="Verify credentials and grant official verified blue tick badge"
+                        >
+                          <CheckCircle size={14} /> Verify & Grant Tick
+                        </button>
+                      ) : s.status === 'APPROVED' ? (
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleSuspendSupplier(s.id)}
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          Revoke / Suspend
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleApproveSupplier(s.id)}
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          Re-verify & Restore
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: DISBURSEMENTS & SETTLEMENTS */}
+      {activeTab === 'settlements' && (
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Platform Disbursements & Settlements</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Net vendor remittances after deducting platform commissions and refunds.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>BATCH NUMBER</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>PERIOD</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>GROSS GMV</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>PLATFORM FEE (10%)</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>NET PAYABLE</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>STATUS</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>PAYOUT REF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {settlements.map(item => (
+                  <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                      {item.settlementNumber}
+                    </td>
+                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                      {item.period}
+                    </td>
+                    <td style={{ padding: '1rem', fontWeight: 700 }}>
+                      {formatINR(item.grossSales)}
+                    </td>
+                    <td style={{ padding: '1rem', color: 'var(--accent-emerald)', fontWeight: 700 }}>
+                      +{formatINR(item.commissionAmount)}
+                    </td>
+                    <td style={{ padding: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                      {formatINR(item.netSettlement)}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <span className={`badge ${item.status === 'PAID' ? 'badge-success' : 'badge-warning'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {item.paymentReference || 'Pending Approval'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: AUDIT TRAIL */}
+      {activeTab === 'audit-logs' && (
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Platform Audit Trail</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Immutable ledger of operational adjustments, vendor actions, and configuration changes.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem' }}>LOG ID</th>
+                  <th style={{ padding: '0.75rem' }}>TIMESTAMP</th>
+                  <th style={{ padding: '0.75rem' }}>OPERATOR</th>
+                  <th style={{ padding: '0.75rem' }}>ACTION</th>
+                  <th style={{ padding: '0.75rem' }}>RESOURCE</th>
+                  <th style={{ padding: '0.75rem' }}>CHANGE DETAILS & REASON</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLogs.map(log => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ padding: '0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                      {log.id}
+                    </td>
+                    <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {formatIndianDateTime(log.createdAt)}
+                    </td>
+                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>
+                      {log.userEmail}
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>
+                      <span className="badge badge-primary">{log.action}</span>
+                    </td>
+                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
+                      {log.resourceType} #{log.resourceId}
+                    </td>
+                    <td style={{ padding: '0.75rem', color: 'var(--text-primary)' }}>
+                      {log.reason} {log.oldValue && log.newValue ? `(${log.oldValue} → ${log.newValue})` : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: SYSTEM SETTINGS */}
+      {activeTab === 'settings' && (
+        <div className="card" style={{ padding: '2rem', maxWidth: '720px' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+            Multi-Vendor Platform Configuration
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.75rem' }}>
+            Tune commissions, GST defaults, and PAN-India delivery policies.
+          </p>
+
+          <form onSubmit={handleSaveSettings}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">Platform Commission (%)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  className="form-input"
+                  value={settings.platformCommissionPercent}
+                  onChange={e => setSettings({ ...settings, platformCommissionPercent: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Default GST Slab (%)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={settings.defaultGstRate}
+                  onChange={e => setSettings({ ...settings, defaultGstRate: parseInt(e.target.value) || 12 })}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div className="form-group">
+                <label className="form-label">Default Apparel HSN Code</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={settings.hsnCode}
+                  onChange={e => setSettings({ ...settings, hsnCode: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Free Delivery Threshold (₹)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={settings.freeShippingThreshold}
+                  onChange={e => setSettings({ ...settings, freeShippingThreshold: parseInt(e.target.value) || 999 })}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Max Cash on Delivery (COD) Amount (₹)</label>
+              <input
+                type="number"
+                className="form-input"
+                value={settings.maxCodAmount}
+                onChange={e => setSettings({ ...settings, maxCodAmount: parseInt(e.target.value) || 10000 })}
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary">
+              Save Platform Configuration
+            </button>
+          </form>
         </div>
       )}
 

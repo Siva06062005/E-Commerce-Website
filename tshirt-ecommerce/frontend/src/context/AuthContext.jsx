@@ -50,8 +50,18 @@ export const AuthProvider = ({ children }) => {
         id: data.id,
         name: data.name || data.fullName,
         email: data.email,
-        role: data.role // 'ROLE_ADMIN' or 'ROLE_CUSTOMER'
+        role: data.role // 'ROLE_ADMIN', 'ROLE_SUPPLIER', or 'ROLE_CUSTOMER'
       };
+
+      // If supplier, attach status
+      if (authenticatedUser.role === 'ROLE_SUPPLIER') {
+        const suppliers = JSON.parse(localStorage.getItem('teezone_admin_suppliers') || '[]');
+        const supp = suppliers.find(s => s.email?.toLowerCase() === email.toLowerCase());
+        authenticatedUser.status = supp ? supp.status : 'APPROVED';
+        authenticatedUser.storeName = supp?.storeName || authenticatedUser.name;
+        authenticatedUser.gstin = supp?.gstin;
+      }
+
       setUser(authenticatedUser);
       setLoading(false);
       return { success: true, user: authenticatedUser };
@@ -62,7 +72,7 @@ export const AuthProvider = ({ children }) => {
       if (email.toLowerCase() === 'admin@teezone.com' && password === 'AdminSecret123!') {
         const adminUser = {
           id: 1,
-          name: 'Chief Admin',
+          name: 'Chief Universal Admin',
           email: 'admin@teezone.com',
           role: 'ROLE_ADMIN'
         };
@@ -71,10 +81,32 @@ export const AuthProvider = ({ children }) => {
         setUser(adminUser);
         setLoading(false);
         return { success: true, user: adminUser };
+      } else if (email.toLowerCase() === 'vendor@teezone.in' && (password === 'VendorPass123!' || password === 'Password123!')) {
+        // Look up supplier status from admin suppliers storage
+        const suppliers = JSON.parse(localStorage.getItem('teezone_admin_suppliers') || '[]');
+        const supp = suppliers.find(s => s.email?.toLowerCase() === 'vendor@teezone.in');
+        const supplierUser = {
+          id: 3,
+          name: 'Rajesh V. Patel (Vendor)',
+          email: 'vendor@teezone.in',
+          role: 'ROLE_SUPPLIER',
+          storeName: supp?.storeName || 'Bharat Cotton Mills',
+          companyName: 'Bharat Weaves & Textiles Pvt Ltd',
+          ownerName: 'Rajesh V. Patel',
+          gstin: supp?.gstin || '29AABCU9603R1Z7',
+          city: supp?.city || 'Bengaluru',
+          state: supp?.state || 'Karnataka',
+          status: supp?.status || 'APPROVED' // Admin approved verified vendor
+        };
+        const mockJwt = 'mock-jwt-supplier-token-' + Date.now();
+        setToken(mockJwt);
+        setUser(supplierUser);
+        setLoading(false);
+        return { success: true, user: supplierUser };
       } else if (email.toLowerCase() === 'demo@example.com' && password === 'Password123!') {
         const custUser = {
           id: 2,
-          name: 'Alex Johnson',
+          name: 'Aarav Sharma',
           email: 'demo@example.com',
           role: 'ROLE_CUSTOMER'
         };
@@ -88,59 +120,116 @@ export const AuthProvider = ({ children }) => {
         const registeredUsers = JSON.parse(localStorage.getItem('teezone_registered_users') || '[]');
         const found = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
         if (found) {
-          const custUser = {
+          // Check if supplier has been approved/updated by admin
+          let supplierStatus = found.status || (found.role === 'ROLE_SUPPLIER' ? 'PENDING' : 'APPROVED');
+          let storeName = found.storeName;
+          if (found.role === 'ROLE_SUPPLIER') {
+            const suppliers = JSON.parse(localStorage.getItem('teezone_admin_suppliers') || '[]');
+            const supp = suppliers.find(s => s.email?.toLowerCase() === found.email.toLowerCase());
+            if (supp) {
+              supplierStatus = supp.status;
+              storeName = supp.storeName;
+            }
+          }
+
+          const authUser = {
             id: found.id,
             name: found.name,
             email: found.email,
-            role: found.role || 'ROLE_CUSTOMER'
+            role: found.role || 'ROLE_CUSTOMER',
+            storeName: storeName || found.name,
+            gstin: found.gstin,
+            status: supplierStatus
           };
-          const mockJwt = 'mock-jwt-customer-token-' + Date.now();
+          const mockJwt = 'mock-jwt-token-' + Date.now();
           setToken(mockJwt);
-          setUser(custUser);
+          setUser(authUser);
           setLoading(false);
-          return { success: true, user: custUser };
+          return { success: true, user: authUser };
         }
       }
 
-      setError('Invalid email or password. For demo, use admin@teezone.com (AdminSecret123!) or demo@example.com (Password123!)');
+      setError('Invalid email or password. Demo accounts: admin@teezone.com (AdminSecret123!), vendor@teezone.in (VendorPass123!), or demo@example.com (Password123!)');
       setLoading(false);
       return { success: false, message: 'Invalid credentials' };
     }
   };
 
-  // Register handler
-  const register = async (name, email, password) => {
+  // Register handler with role support and vendor metadata
+  const register = async (name, email, password, role = 'ROLE_CUSTOMER', extraData = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/register`, { name, email, password }, { timeout: 3000 });
+      const res = await axios.post(`${API_BASE_URL}/auth/register?role=${role}`, { name, email, password, ...extraData }, { timeout: 3000 });
       const data = res.data;
       setToken(data.token);
       const newUser = {
         id: data.id,
         name: data.name || name,
         email: data.email || email,
-        role: data.role || 'ROLE_CUSTOMER'
+        role: data.role || role,
+        storeName: extraData.storeName || name,
+        status: role === 'ROLE_SUPPLIER' ? 'PENDING' : 'APPROVED',
+        ...extraData
       };
       setUser(newUser);
       setLoading(false);
       return { success: true, user: newUser };
     } catch (err) {
       console.warn('Backend register unavailable, saving locally for immediate session:', err.message);
+      const isVendor = role === 'ROLE_SUPPLIER';
       const newUser = {
         id: Date.now(),
         name,
         email,
-        password, // For local test validation
-        role: 'ROLE_CUSTOMER'
+        password,
+        role,
+        storeName: extraData.storeName || name,
+        companyName: extraData.companyName || extraData.storeName || name,
+        ownerName: extraData.ownerName || name,
+        phone: extraData.phone || '',
+        gstin: extraData.gstin || '',
+        pan: extraData.pan || '',
+        city: extraData.city || 'Bengaluru',
+        state: extraData.state || 'Karnataka',
+        pincode: extraData.pincode || '560001',
+        status: isVendor ? 'PENDING' : 'APPROVED' // Vendors must be approved by Universal Admin
       };
+
+      // Save to registered users
       const existingList = JSON.parse(localStorage.getItem('teezone_registered_users') || '[]');
       existingList.push(newUser);
       localStorage.setItem('teezone_registered_users', JSON.stringify(existingList));
 
-      const mockJwt = 'mock-jwt-customer-token-' + Date.now();
+      // If supplier, register in Universal Admin suppliers queue so admin can inspect & verify
+      if (isVendor) {
+        const suppliers = JSON.parse(localStorage.getItem('teezone_admin_suppliers') || '[]');
+        const newSupplierRecord = {
+          id: newUser.id,
+          storeName: newUser.storeName,
+          companyName: newUser.companyName,
+          ownerName: newUser.ownerName,
+          email: newUser.email,
+          phone: newUser.phone,
+          gstin: newUser.gstin,
+          pan: newUser.pan,
+          city: newUser.city,
+          state: newUser.state,
+          pincode: newUser.pincode,
+          status: 'PENDING',
+          commissionRate: 10,
+          totalProducts: 0,
+          totalSales: 0,
+          rating: 5.0,
+          joinedAt: new Date().toISOString()
+        };
+        suppliers.push(newSupplierRecord);
+        localStorage.setItem('teezone_admin_suppliers', JSON.stringify(suppliers));
+      }
+
+      const mockJwt = 'mock-jwt-token-' + Date.now();
       setToken(mockJwt);
-      setUser({ id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role });
+      setUser(newUser);
       setLoading(false);
       return { success: true, user: newUser };
     }
@@ -154,6 +243,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = user?.role === 'ROLE_ADMIN' || user?.role === 'ADMIN';
+  const isSupplier = user?.role === 'ROLE_SUPPLIER' || user?.role === 'SUPPLIER';
+  const isCustomer = !isAdmin && !isSupplier;
+
+  // RBAC granular permissions checker independent of UI role
+  const hasPermission = (permission) => {
+    if (isAdmin) return true;
+    if (isSupplier) {
+      const supplierPerms = [
+        'PRODUCT_VIEW', 'PRODUCT_CREATE', 'PRODUCT_UPDATE',
+        'INVENTORY_VIEW', 'INVENTORY_UPDATE', 'INVENTORY_ADJUST',
+        'ORDER_VIEW', 'ORDER_UPDATE',
+        'PAYMENT_VIEW', 'SETTLEMENT_VIEW'
+      ];
+      return supplierPerms.includes(permission);
+    }
+    const customerPerms = ['PRODUCT_VIEW', 'ORDER_VIEW'];
+    return customerPerms.includes(permission);
+  };
 
   return (
     <AuthContext.Provider value={{
@@ -165,6 +272,9 @@ export const AuthProvider = ({ children }) => {
       register,
       logout,
       isAdmin,
+      isSupplier,
+      isCustomer,
+      hasPermission,
       isAuthenticated: !!user
     }}>
       {children}
